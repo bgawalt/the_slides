@@ -10,6 +10,23 @@ themselves via his account at
 
 This Python suite posts The Slides to Bluesky, once an hour.
 
+## Dependencies
+
+This project relies on [Pillow](https://pillow.readthedocs.io/) to process the
+original slide scans into tinier, more-uploadable sizes:
+
+```
+$ pip install --upgrade Pillow
+```
+
+Here's what the virtualenv I have on my laptop looks like overall
+(Nov 23, 2023):
+
+```
+$ pip freeze
+Pillow==10.1.0
+```
+
 ## Reprocessing originals
 
 I have downloaded, just manually, via browser, nine slide collections in JPEG
