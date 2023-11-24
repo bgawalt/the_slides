@@ -27,7 +27,7 @@ $ pip freeze
 Pillow==10.1.0
 ```
 
-## Reprocessing originals
+## `shrink_images.py`: Reprocessing originals
 
 I have downloaded, just manually, via browser, nine slide collections in JPEG
 format.  These nine were the ones available on the Internet Archive (link above)
@@ -35,7 +35,7 @@ on Nov 23, 2023, and match the galleries available on Sam's site.  Altogether,
 they come to 291 images of total size 985 MB.  Their typical resolution was
 around 5,550 pixels wide by 3,500 pixels tall.
 
-I will reprocess these images to a width of 600 pixels, since that seems to be
+I reprocess these images to a width of 600 pixels, since that seems to be
 just a bit wider than the photos you see in your BlueSky timeline.
 
 I've organized these originals in directories with names corresponding to the
@@ -48,3 +48,11 @@ Capitalization & casing are kept constant. So the directory
 name "SERIES 78, AERO SPACE DEFENSE COMMAND BOX 1 OF 2 V-0092".  This matters
 because I want to include the original collection name in the text of the
 BlueSky post, and these directories are the only way I save those names.
+
+Note: This `shrink_images.py` is missing about 5 more minutes of effort that
+would let it save the processed images into non-existant directories (i.e.,
+create dirs before saving to them).  I don't feel like doing that!  You can find
+my hacky workaround described in a block comment.
+
+The originals are not included in this repo (they're too big), but the shrunken
+versions are.
