@@ -1,2 +1,4 @@
-# Don't store the original slides.
+# Don't store the original slides:
 img/raw/*
+# Login creds:
+*.secret

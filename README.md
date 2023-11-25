@@ -12,11 +12,17 @@ This Python suite posts The Slides to Bluesky, once an hour.
 
 ## Dependencies
 
-This project relies on [Pillow](https://pillow.readthedocs.io/) to process the
-original slide scans into tinier, more-uploadable sizes:
+This project relies on:
+
+*  [Pillow](https://pillow.readthedocs.io/) to process the original slide scans
+   into tinier, more-uploadable sizes
+*  [requests](https://pypi.org/project/requests/) for communicating with BlueSky
+
+They can be installed with these commands:
 
 ```
 $ pip install --upgrade Pillow
+$ pip install requests
 ```
 
 Here's what the virtualenv I have on my laptop looks like overall
@@ -24,7 +30,12 @@ Here's what the virtualenv I have on my laptop looks like overall
 
 ```
 $ pip freeze
+certifi==2023.11.17
+charset-normalizer==3.3.2
+idna==3.5
 Pillow==10.1.0
+requests==2.31.0
+urllib3==2.1.0
 ```
 
 ## `shrink_images.py`: Reprocessing originals
@@ -56,3 +67,19 @@ my hacky workaround described in a block comment.
 
 The originals are not included in this repo (they're too big), but the shrunken
 versions are.
+
+## `post_image.py`: Post a processed slide to BlueSky
+
+(This is work in progress.  It can post images, but not any of The Slides yet.)
+
+You supply login credentials with a text file of this wacky custom format, with
+these specific keys pointing to your own particular values:
+
+```
+ATP_HOST = [your host, very likely to be https://bsky.social]
+ATP_USERNAME = [your username; like, right now, I'm using brian.gawalt.com]
+ATP_PASSWORD = [an app password for this account]
+```
+
+To be clear: everything outside the square brackets needs to appear in this
+credentials file verbatim.
