@@ -7,6 +7,7 @@ Usage:
 TODO: Make this pick a random slide instead of the given user image.
 """
 
+import base64
 import dataclasses
 import pathlib
 import requests
@@ -61,6 +62,10 @@ def post_image(text_content: str, img: pathlib.Path, login: BSkyLogin):
         "Content-Type": "image/jpeg"
     }
     img_bytes = img.read_bytes()
+
+    img_encode = base64.b64encode(img_bytes)
+    img_decode = base64.b64decode(img_encode)
+
     blob_resp = requests.post(
         f"{login.host}/xrpc/com.atproto.repo.uploadBlob",
         data=img_bytes,
