@@ -8,7 +8,10 @@ dedicated to these slides at
 themselves via his account at
 [the Internet Archive](https://archive.org/details/@sambiddle).
 
-This Python suite posts The Slides to Bluesky, once an hour.
+This Python suite posts The Slides to Bluesky, four times a day*, at the account
+[theslides.bsky.social](https://bsky.app/profile/theslides.bsky.social).
+
+(* Or, it will, soon! Before Dec 1, 2023, for sure.)
 
 ## Dependencies
 
@@ -60,17 +63,16 @@ name "SERIES 78, AERO SPACE DEFENSE COMMAND BOX 1 OF 2 V-0092".  This matters
 because I want to include the original collection name in the text of the
 BlueSky post, and these directories are the only way I save those names.
 
-Note: This `shrink_images.py` is missing about 5 more minutes of effort that
-would let it save the processed images into non-existant directories (i.e.,
-create dirs before saving to them).  I don't feel like doing that!  You can find
-my hacky workaround described in a block comment.
+The shrunken images are serialized as JPEGs, and their Base64-encoded bytes
+are stored in a SQLite table named `slides` with the following columns,
+all of type `text`:
 
-The originals are not included in this repo (they're too big), but the shrunken
-versions are.
+*  `collection`: The name of the slide deck the image comes from
+*  `filename`: The actual filename of the image
+*  `jpeg_base64`: Base64 encoding of the 600-pixel-wide version of the image
+
 
 ## `post_image.py`: Post a processed slide to BlueSky
-
-(This is work in progress.  It can post images, but not any of The Slides yet.)
 
 You supply login credentials with a text file of this wacky custom format, with
 these specific keys pointing to your own particular values:
@@ -83,3 +85,17 @@ ATP_PASSWORD = [an app password for this account]
 
 To be clear: everything outside the square brackets needs to appear in this
 credentials file verbatim.
+
+The script then connects to, and extracts an image and its metadata from, the
+SQLite file created by `shrink_images.py`. It reports the name of the collection
+the slide comes from, as well as a "slide X of Y" designation based on the
+sort-order of the filename of the slide within its collection.
+
+## TODO
+
+In the order I'll do 'em:
+
+*  Add a hyperlink to the collection
+*  Deploy with a 4x daily CRON job
+*  Alt text: I'll have to come up with a tool to let me write descriptive text
+   for all ~250 slides

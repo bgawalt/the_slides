@@ -2,7 +2,7 @@
 
 Usage:
 
-  $ python post_image.py credfile.secret path/to/image.jpeg
+  $ python post_image.py credfile.secret slides_input.db3
 
 TODO: Make this pick a random slide instead of the given user image.
 """
@@ -12,9 +12,42 @@ import dataclasses
 import pathlib
 import requests
 import sys
+import sqlite3
 
 from datetime import datetime, timezone
 from typing import Tuple
+
+
+_SELECT_SLIDE_QUERY = """
+    WITH collection_counts AS (
+        SELECT collection, COUNT(*) as num_img
+        FROM slides
+        GROUP BY collection
+    ),
+    img_ranks AS (
+        SELECT
+            collection,
+            filename,
+            jpeg_base64,
+            RANK() OVER (
+                PARTITION BY collection
+                ORDER BY filename
+            ) AS filename_rank
+        FROM slides
+    )
+    SELECT
+        ir.collection,
+        ir.filename,
+        ir.filename_rank,
+        cc.num_img,
+        ir.jpeg_base64
+    FROM
+        img_ranks AS ir
+        LEFT JOIN collection_counts AS cc
+        ON ir.collection = cc.collection
+    ORDER BY RANDOM()
+    LIMIT 1
+"""
 
 
 @dataclasses.dataclass(frozen=True)
@@ -54,18 +87,17 @@ class BSkyLogin:
         )
 
 
-def post_image(text_content: str, img: pathlib.Path, login: BSkyLogin):
+def post_image(
+    collection: str, file_rank: int, collection_size: int, jpeg_b64: str,
+    login: BSkyLogin
+):
     auth, did = login.get_auth_and_did()
     # Upload the image as a blob:
     blob_hdrs = {
         "Authorization": "Bearer " + auth,
         "Content-Type": "image/jpeg"
     }
-    img_bytes = img.read_bytes()
-
-    img_encode = base64.b64encode(img_bytes)
-    img_decode = base64.b64decode(img_encode)
-
+    img_bytes = base64.b64decode(jpeg_b64)
     blob_resp = requests.post(
         f"{login.host}/xrpc/com.atproto.repo.uploadBlob",
         data=img_bytes,
@@ -73,6 +105,7 @@ def post_image(text_content: str, img: pathlib.Path, login: BSkyLogin):
     )
     print("Blob upload response status code:", blob_resp.status_code)
     # Post the message:
+    text_content = f'"{collection}," slide {file_rank} of {collection_size}'
     dtime_now = datetime.now(timezone.utc)
     timestamp_iso = dtime_now.isoformat().replace("+00:00", "Z")
     msg_hdrs = {"Authorization": "Bearer " + auth}
@@ -105,9 +138,20 @@ def main():
     credfile = pathlib.Path(sys.argv[1])
     login = BSkyLogin.from_file(credfile)
 
-    imgfile = pathlib.Path(sys.argv[2])
-    what_to_post = input("Enter message: ")
-    post_image(what_to_post, imgfile, login)
+    db_filename = sys.argv[2]
+    conn = sqlite3.connect(db_filename)
+    cur = conn.cursor()
+    cur.execute(_SELECT_SLIDE_QUERY)
+    collection, _, rank, col_size, jpeg_b64 = cur.fetchone()
+    print(collection, rank, col_size)
+    post_image(
+        collection=collection,
+        file_rank=rank,
+        collection_size=col_size,
+        jpeg_b64=jpeg_b64,
+        login=login
+    )
+    conn.close()
 
 
 if __name__ == "__main__":
