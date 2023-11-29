@@ -31,7 +31,6 @@ class BSkyLogin:
         did = resp.json().get("did")
         return (auth_token, did)
 
-
     @staticmethod
     def from_file(path: pathlib.Path):
         """Load a login from a custom-format credfile; see README."""
@@ -162,7 +161,6 @@ class BSkyMessageBuilder:
             blob_resp.raise_for_status()
             blobs.append(blob_resp.json()["blob"])
         return blobs
-
 
             
 def main():
