@@ -4,18 +4,16 @@ Usage:
 
   $ python post_image.py credfile.secret slides_input.db3
 
-TODO: Make this pick a random slide instead of the given user image.
+See README for description of the credentials file and the table expected
+in the SQLite file.
 """
 
 import base64
-import dataclasses
 import pathlib
-import requests
 import sys
 import sqlite3
 
-from datetime import datetime, timezone
-from typing import Tuple
+import bsky_lib
 
 
 _SELECT_SLIDE_QUERY = """
@@ -50,93 +48,50 @@ _SELECT_SLIDE_QUERY = """
 """
 
 
-@dataclasses.dataclass(frozen=True)
-class BSkyLogin:
-    host: str
-    username: str
-    password: str
-
-    def get_auth_and_did(self) -> Tuple[str, str]:
-        """Fetch your (auth token, dist user id) pair."""
-        token_request_params = {
-            "identifier": self.username,
-            "password": self.password
-        }
-        resp = requests.post(
-            f"{self.host}/xrpc/com.atproto.server.createSession",
-            json=token_request_params
-        )
-        auth_token = resp.json().get("accessJwt")
-        if auth_token is None:
-            raise ValueError("Whoopsie doodle, bad response:" +
-                str(resp.json()))
-        did = resp.json().get("did")
-        return (auth_token, did)
-
-
-    @staticmethod
-    def from_file(path: pathlib.Path):
-        """Load a login from a custom-format credfile; see README."""
-        lines = path.read_text().split("\n")
-        splines = (line.split(" = ") for line in lines if line)
-        kv = {spline[0]: spline[1] for spline in splines}
-        return BSkyLogin(
-            host=kv["ATP_HOST"],
-            username=kv["ATP_USERNAME"],
-            password=kv["ATP_PASSWORD"],
-        )
+_COLLECTION_URLS = {
+    "AFSC 35mm presentation slides": "https://www.sambiddle.com/afsc",
+    "Alaskan Air Command": "https://www.sambiddle.com/aac",
+    "MX Missile": "https://www.sambiddle.com/mx-missile",
+    "NORAD 35mm presentation slides": "https://www.sambiddle.com/norad",
+    "ORGANIZATION FOR NATIONAL SECURITY": "https://www.sambiddle.com/organization-for-national-security-vd037",
+    "SERIES 78, AERO SPACE DEFENSE COMMAND BOX 1 OF 2 V-0092": "https://www.sambiddle.com/series-78-aero-space-defense-command-box-1-of-2-v-0092",
+    "SOVIET MILITARY CAPABILITIES S-100-18-85 BOX 1 OF 2": "https://www.sambiddle.com/soviet-military-capabilities-s-100-18-85-box-1-of-2",
+    "US Navy 35mm presentation slides": "https://www.sambiddle.com/us-navy",
+    "V-0073 TACTICAL AIR COMMAND 1978 BX 1 of 2": "https://www.sambiddle.com/v-0073-tactical-air-command-1978-bx-1-of-2"
+}
 
 
 def post_image(
     collection: str, file_rank: int, collection_size: int, jpeg_b64: str,
-    login: BSkyLogin
+    login: bsky_lib.BSkyLogin
 ):
-    auth, did = login.get_auth_and_did()
-    # Upload the image as a blob:
-    blob_hdrs = {
-        "Authorization": "Bearer " + auth,
-        "Content-Type": "image/jpeg"
-    }
+    collection_url = _COLLECTION_URLS.get(
+        collection, "https://www.sambiddle.com/35mm-scans")
+    builder = bsky_lib.BSkyMessageBuilder()
+    builder.add_segment(
+        bsky_lib.PlainTextSegment(
+            f'"{collection}," slide {file_rank} of {collection_size} ['
+        )
+    )
+    builder.add_segment(
+        bsky_lib.HyperlinkSegment(
+            text="gallery",
+            url=collection_url
+        )
+    )
+    builder.add_segment(
+        bsky_lib.PlainTextSegment("]")
+    )
+
     img_bytes = base64.b64decode(jpeg_b64)
-    blob_resp = requests.post(
-        f"{login.host}/xrpc/com.atproto.repo.uploadBlob",
-        data=img_bytes,
-        headers=blob_hdrs
-    )
-    print("Blob upload response status code:", blob_resp.status_code)
-    # Post the message:
-    text_content = f'"{collection}," slide {file_rank} of {collection_size}'
-    dtime_now = datetime.now(timezone.utc)
-    timestamp_iso = dtime_now.isoformat().replace("+00:00", "Z")
-    msg_hdrs = {"Authorization": "Bearer " + auth}
-    msg_data = {
-        "collection": "app.bsky.feed.post",
-        "$type": "app.bsky.feed.post",
-        "repo": "{}".format(did),
-        "record": {
-            "$type": "app.bsky.feed.post",
-            "createdAt": timestamp_iso,
-            "text": text_content,
-            "embed": {
-                "$type": "app.bsky.embed.images",
-                "images": [{
-                    "alt": "",
-                    "image": blob_resp.json().get("blob")
-                }]
-            }
-        }
-    }
-    msg_resp = requests.post(
-        f"{login.host}/xrpc/com.atproto.repo.createRecord",
-        json=msg_data,
-        headers=msg_hdrs
-    )
-    print("Message response status code:", msg_resp.status_code)
+    builder.add_jpeg(img_bytes)
+
+    builder.post(login)
 
 
 def main():
     credfile = pathlib.Path(sys.argv[1])
-    login = BSkyLogin.from_file(credfile)
+    login = bsky_lib.BSkyLogin.from_file(credfile)
 
     db_filename = sys.argv[2]
     conn = sqlite3.connect(db_filename)
