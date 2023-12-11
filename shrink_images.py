@@ -6,8 +6,16 @@ SQLite3 file, use as:
   $ python shrink_images.py sqlite_output.db3
 
 This scans for JPEGs in directories under `img/raw/`, as specified by the module
-constant `_RAW_ROOT_DIR`, and shoves em in a three-column table named `slides`
+constant `_RAW_ROOT_DIR`, and shoves 'em in a four-column table named `slides`
 in that destination DB file.
+
+The four columns of `slides`, in order:
+
+1.  `collection`, the name of the slide deck this slide is drawn from
+2.  `filename`, the filename of the slide image file
+3.  `file_id_num`, the 1-indexed position of this image file in the sort order
+      of this collection's file name
+4.  `jpeg_base64`, the Base64 encoding of the image (JPEG format)
 """
 
 
@@ -27,13 +35,14 @@ _CREATE_TABLE_QUERY = """
     CREATE TABLE slides(
         collection text,
         filename text,
+        file_id_num integer,
         jpeg_base64 text
     );
 """
 
 _INSERT_IMAGE_QUERY = """
-    INSERT INTO slides (collection, filename, jpeg_base64)
-    VALUES (?, ?, ?)
+    INSERT INTO slides (collection, filename, file_id_num, jpeg_base64)
+    VALUES (?, ?, ?, ?)
 """
 
 
@@ -69,16 +78,24 @@ def main():
     cur.execute(_CREATE_TABLE_QUERY)
 
     n = len(img_paths)
+    prev_coll = None
+    file_id_num = 1
     for i, p in enumerate(sorted(img_paths), 1):
         small_jpeg_b64 = process_image(p)
+        collection = p.parent.name.replace("__", ", ").replace("_", " ")
+        if collection != prev_coll:
+            file_id_num = 1
         insert_tuple = (
-            p.parent.name.replace("__", ", ").replace("_", " "),  # collection
+            collection,  # collection
             p.name,  # filename
+            file_id_num,  # file_id_num
             small_jpeg_b64  # jpeg_base64
         )
         cur.execute(_INSERT_IMAGE_QUERY, insert_tuple)
         conn.commit()
         print(p, f'processed ({i} of {n})')
+        file_id_num += 1
+        prev_coll = collection
     
     conn.close()
 

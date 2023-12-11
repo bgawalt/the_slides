@@ -21,28 +21,17 @@ _SELECT_SLIDE_QUERY = """
         SELECT collection, COUNT(*) as num_img
         FROM slides
         GROUP BY collection
-    ),
-    img_ranks AS (
-        SELECT
-            collection,
-            filename,
-            jpeg_base64,
-            RANK() OVER (
-                PARTITION BY collection
-                ORDER BY filename
-            ) AS filename_rank
-        FROM slides
     )
     SELECT
-        ir.collection,
-        ir.filename,
-        ir.filename_rank,
+        sl.collection,
+        sl.filename,
+        sl.file_id_num,
         cc.num_img,
-        ir.jpeg_base64
+        sl.jpeg_base64
     FROM
-        img_ranks AS ir
+        slides AS sl
         LEFT JOIN collection_counts AS cc
-        ON ir.collection = cc.collection
+        ON sl.collection = cc.collection
     ORDER BY RANDOM()
     LIMIT 1
 """
