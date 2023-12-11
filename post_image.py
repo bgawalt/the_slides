@@ -74,14 +74,9 @@ def post_image(
         )
     )
     builder.add_segment(
-        bsky_lib.HyperlinkSegment(
-            text="gallery",
-            url=collection_url
-        )
+        bsky_lib.HyperlinkSegment(text="gallery", url=collection_url)
     )
-    builder.add_segment(
-        bsky_lib.PlainTextSegment("]")
-    )
+    builder.add_segment(bsky_lib.PlainTextSegment("]"))
     img_bytes = base64.b64decode(jpeg_b64)
     builder.add_jpeg(img_bytes)
     builder.post(login)
