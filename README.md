@@ -95,7 +95,6 @@ sort-order of the filename of the slide within its collection.
 
 In the order I'll do 'em:
 
-*  Add a hyperlink to the collection
 *  Deploy with a 4x daily CRON job
 *  Alt text: I'll have to come up with a tool to let me write descriptive text
    for all ~250 slides
