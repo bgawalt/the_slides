@@ -120,6 +120,7 @@ class BSkyMessageBuilder:
             "$type": "app.bsky.feed.post",
             "createdAt": timestamp_iso,
             "text": text_content,
+            "langs": ["en-US"]
         }
         if self._facets:
             record["facets"] = list(self._facets)
