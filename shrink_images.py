@@ -64,10 +64,6 @@ def process_image(img_path: pathlib.Path) -> str:
     return out_b64
 
 
-def dir_to_collection_name(dir_path: pathlib.Path) -> str:
-    return 
-
-
 def main():
     raw_root_path = pathlib.Path(_RAW_ROOT_DIR)
     img_paths = tuple(raw_root_path.glob('*/*.jpeg'))

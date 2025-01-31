@@ -43,11 +43,12 @@ urllib3==2.1.0
 
 ## `shrink_images.py`: Reprocessing originals
 
-I have downloaded, just manually, via browser, nine slide collections in JPEG
-format.  These nine were the ones available on the Internet Archive (link above)
-on Nov 23, 2023, and match the galleries available on Sam's site.  Altogether,
-they come to 291 images of total size 985 MB.  Their typical resolution was
-around 5,550 pixels wide by 3,500 pixels tall.
+I have downloaded, just manually, via browser, the slide collections in JPEG
+format, as available on the Internet Archive (link above). The first nine were
+downloaded on Nov 23, 2023, and the next five on Jan 29, 2025, and match the
+galleries available on Sam's site.  Altogether, they come to 422 images of total
+size 1.5 GB.  Their typical resolution was around 5,550 pixels wide by 3,500
+pixels tall.
 
 I reprocess these images to a width of 600 pixels, since that seems to be
 just a bit wider than the photos you see in your BlueSky timeline.

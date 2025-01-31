@@ -37,7 +37,7 @@ _SELECT_SLIDE_QUERY = """
 """
 
 
-_COLLECTION_URLS = {
+COLLECTION_URLS = {
     "AFSC 35mm presentation slides": "https://www.sambiddle.com/afsc",
     "Alaskan Air Command": "https://www.sambiddle.com/aac",
     "MX Missile": "https://www.sambiddle.com/mx-missile",
@@ -46,7 +46,12 @@ _COLLECTION_URLS = {
     "SERIES 78, AERO SPACE DEFENSE COMMAND BOX 1 OF 2 V-0092": "https://www.sambiddle.com/series-78-aero-space-defense-command-box-1-of-2-v-0092",
     "SOVIET MILITARY CAPABILITIES S-100-18-85 BOX 1 OF 2": "https://www.sambiddle.com/soviet-military-capabilities-s-100-18-85-box-1-of-2",
     "US Navy 35mm presentation slides": "https://www.sambiddle.com/us-navy",
-    "V-0073 TACTICAL AIR COMMAND 1978 BX 1 of 2": "https://www.sambiddle.com/v-0073-tactical-air-command-1978-bx-1-of-2"
+    "V-0073 TACTICAL AIR COMMAND 1978 BX 1 of 2": "https://www.sambiddle.com/v-0073-tactical-air-command-1978-bx-1-of-2",
+    "Untitled Slide Box 1": "https://www.sambiddle.com/new-page",
+    "Air Force Communications Command": "https://www.sambiddle.com/afcc",
+    "Military Airlift Command": "https://www.sambiddle.com/mac",
+    "MATHER NAV TRAINING S--1124 Bx 1 of 2": "https://www.sambiddle.com/mather-nav",
+    "Untitled Slide Box 2": "https://www.sambiddle.com/unlabeled-box-2"
 }
 
 
@@ -54,7 +59,7 @@ def post_image(
     collection: str, file_rank: int, collection_size: int, jpeg_b64: str,
     login: bsky_lib.BSkyLogin
 ):
-    collection_url = _COLLECTION_URLS.get(
+    collection_url = COLLECTION_URLS.get(
         collection, "https://www.sambiddle.com/35mm-scans")
     builder = bsky_lib.BSkyMessageBuilder()
     builder.add_segment(
