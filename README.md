@@ -72,6 +72,9 @@ all of type `text`:
 *  `filename`: The actual filename of the image
 *  `jpeg_base64`: Base64 encoding of the 600-pixel-wide version of the image
 
+You can check this worked OK with `test_db.py`: that the collection names are
+all recognized as linkable back to Biddle's galleries, and that the base-64
+strings really can be parsed into JPEGs again.
 
 ## `post_image.py`: Post a processed slide to BlueSky
 
