@@ -86,7 +86,7 @@ these specific keys pointing to your own particular values:
 
 ```
 ATP_HOST = [your host, very likely to be https://bsky.social]
-ATP_USERNAME = [your username; like, right now, I'm using brian.gawalt.com]
+ATP_USERNAME = [your username; like, right now, I'm using theslides.bsky.social]
 ATP_PASSWORD = [an app password for this account]
 ```
 
@@ -98,10 +98,7 @@ SQLite file created by `shrink_images.py`. It reports the name of the collection
 the slide comes from, as well as a "slide X of Y" designation based on the
 sort-order of the filename of the slide within its collection.
 
-## TODO
+## TODO: Alt text
 
-In the order I'll do 'em:
-
-*  Deploy with a 4x daily CRON job
-*  Alt text: I'll have to come up with a tool to let me write descriptive text
-   for all ~250 slides
+Alt text: I'll have to come up with a tool to let me write descriptive text
+for all ~450 slides.

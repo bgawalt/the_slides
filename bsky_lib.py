@@ -93,6 +93,7 @@ class BSkyMessageBuilder:
         self._facets = []
         self._total_byte_len = 0
         self._img_bytes = []
+        self._img_dims = []
         self._img_alts = []
     
     def add_segment(self, segment: BSkyMessageSegment) -> None:
@@ -102,10 +103,12 @@ class BSkyMessageBuilder:
             self._facets.append(facet)
         self._total_byte_len += segment.byte_len()
     
-    def add_jpeg(self, img_bytes: bytes, alt_text: str = "") -> None:
+    def add_jpeg(self, img_bytes: bytes, width: int, height: int,
+                 alt_text: str = "") -> None:
         if len(self._img_bytes) == 4:
             raise RuntimeError("That's too many jpegs!!")
         self._img_bytes.append(img_bytes)
+        self._img_dims.append((width, height))
         self._img_alts.append(alt_text)
     
     def post(self,
@@ -126,8 +129,12 @@ class BSkyMessageBuilder:
             record["facets"] = list(self._facets)
         if self._img_bytes:
             blobs = self._get_jpeg_blobs(host=login.host, auth=auth)
-            images = [{"alt": alt, "image": blob}
-                      for alt, blob in zip(self._img_alts, blobs)]
+            images = [
+                {"alt": alt, "image": blob,
+                 "aspectRatio": {"width": w, "height": h}}
+                for alt, blob, (w, h)
+                in zip(self._img_alts, blobs, self._img_dims)
+            ]
             record["embed"] = {
                 "$type": "app.bsky.embed.images",
                 "images": images
