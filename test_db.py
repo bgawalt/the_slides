@@ -4,6 +4,7 @@ Specifically,
 
 *  Are all the entries in the `collection` column recognized Biddle galleries?
 *  Do all the `jpeg_base64` column's strings really parse into JPEGs?
+*  Do the width and height columns match the actual JPEG dimensions?
 *  Are all the images "big" in both dimensions?
 
 Usage:
@@ -47,10 +48,16 @@ def main():
     bio = io.BytesIO()
     bio.write(img_bytes)
     try:
-      _ = Image.open(bio)
+      img = Image.open(bio)
     except:
       print(f"{collection}:{filename} has unparseable jpeg_base64")
       raise
+    if width != img.size[0]:
+      raise ValueError(
+        f"{collection}:{filename} has width mismatch, {width} v {img.size}")
+    if height != img.size[1]:
+      raise ValueError(
+        f"{collection}:{filename} has height mismatch, {height} v {img.size}")
     if width < 100:
       raise ValueError(f"{collection}:{filename} is not wide enough: {width}")
     if height < 100:
