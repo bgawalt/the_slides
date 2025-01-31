@@ -4,6 +4,7 @@ Specifically,
 
 *  Are all the entries in the `collection` column recognized Biddle galleries?
 *  Do all the `jpeg_base64` column's strings really parse into JPEGs?
+*  Are all the images "big" in both dimensions?
 
 Usage:
 
@@ -25,7 +26,9 @@ _QUERY = """
 SELECT
   collection,
   filename,
-  jpeg_base64
+  jpeg_base64,
+  width, 
+  height
 FROM slides
 """
 
@@ -36,7 +39,7 @@ def main():
   cur = conn.cursor()
   cur.execute(_QUERY)
   i = 0
-  for collection, filename, jpeg_b64 in cur.fetchall():
+  for collection, filename, jpeg_b64, width, height in cur.fetchall():
     i += 1
     if collection not in post_image.COLLECTION_URLS:
       raise ValueError(f"unrecognized collection {collection}")
@@ -46,8 +49,12 @@ def main():
     try:
       _ = Image.open(bio)
     except:
-      print(f"filename {filename} has unparseable jpeg_base64")
+      print(f"{collection}:{filename} has unparseable jpeg_base64")
       raise
+    if width < 100:
+      raise ValueError(f"{collection}:{filename} is not wide enough: {width}")
+    if height < 100:
+      raise ValueError(f"{collection}:{filename} is not tall enough: {height}")
   print(f"Successfully scanned {i} images")
 
 

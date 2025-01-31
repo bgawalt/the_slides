@@ -20,6 +20,7 @@ The four columns of `slides`, in order:
 
 
 import base64
+import dataclasses
 import io
 import pathlib
 import sqlite3
@@ -36,17 +37,28 @@ _CREATE_TABLE_QUERY = """
         collection text,
         filename text,
         file_id_num integer,
-        jpeg_base64 text
+        jpeg_base64 text,
+        width integer,
+        height integer
     );
 """
 
 _INSERT_IMAGE_QUERY = """
-    INSERT INTO slides (collection, filename, file_id_num, jpeg_base64)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO slides (
+      collection, filename, file_id_num, jpeg_base64, width, height
+    )
+    VALUES (?, ?, ?, ?, ?, ?)
 """
 
 
-def process_image(img_path: pathlib.Path) -> str:
+@dataclasses.dataclass(frozen=True)
+class ShrunkenImage:
+    bytes_b64: str
+    width: int
+    height: int
+
+
+def process_image(img_path: pathlib.Path) -> ShrunkenImage:
     """Loads the given big JPEG and returns a shrunken, Base64 version."""
     # Load and resize the image:
     img_orig = Image.open(img_path)
@@ -54,6 +66,7 @@ def process_image(img_path: pathlib.Path) -> str:
     w_new = 600
     h_new = int(float(h_orig * w_new) / w_orig)
     img_new = img_orig.resize((w_new, h_new), Image.Resampling.LANCZOS)
+    w_new, h_new = img_new.size
     # Serialize it into "a file":
     out_bytes_io = io.BytesIO()
     img_new.save(out_bytes_io, format='jpeg')
@@ -61,7 +74,7 @@ def process_image(img_path: pathlib.Path) -> str:
     out_bytes_io.seek(0)
     out_bytes = out_bytes_io.read()
     out_b64 = base64.b64encode(out_bytes)
-    return out_b64
+    return ShrunkenImage(out_b64, width=w_new, height=h_new)
 
 
 def main():
@@ -77,7 +90,7 @@ def main():
     prev_coll = None
     file_id_num = 1
     for i, p in enumerate(sorted(img_paths), 1):
-        small_jpeg_b64 = process_image(p)
+        small_jpeg = process_image(p)
         collection = p.parent.name.replace("__", ", ").replace("_", " ")
         if collection != prev_coll:
             file_id_num = 1
@@ -85,7 +98,9 @@ def main():
             collection,  # collection
             p.name,  # filename
             file_id_num,  # file_id_num
-            small_jpeg_b64  # jpeg_base64
+            small_jpeg.bytes_b64 , # jpeg_base64
+            small_jpeg.width,  # width
+            small_jpeg.height  # height
         )
         cur.execute(_INSERT_IMAGE_QUERY, insert_tuple)
         conn.commit()

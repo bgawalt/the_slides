@@ -66,11 +66,14 @@ BlueSky post, and these directories are the only way I save those names.
 
 The shrunken images are serialized as JPEGs, and their Base64-encoded bytes
 are stored in a SQLite table named `slides` with the following columns,
-all of type `text`:
+all of type `text` or `integer`:
 
 *  `collection`: The name of the slide deck the image comes from
 *  `filename`: The actual filename of the image
+*  `file_id_num`: An index for the file within its collection, like the "7" in
+    "Image 7 of 20"
 *  `jpeg_base64`: Base64 encoding of the 600-pixel-wide version of the image
+*  `width`, `height`: Dimensions of the image
 
 You can check this worked OK with `test_db.py`: that the collection names are
 all recognized as linkable back to Biddle's galleries, and that the base-64
