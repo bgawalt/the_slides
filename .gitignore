@@ -3,3 +3,4 @@ img/raw/*
 # Login creds:
 *.secret
 __pycache__
+.vscode

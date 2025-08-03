@@ -53,7 +53,7 @@ _INSERT_IMAGE_QUERY = """
 
 @dataclasses.dataclass(frozen=True)
 class ShrunkenImage:
-    bytes_b64: str
+    bytes_b64: bytes
     width: int
     height: int
 
