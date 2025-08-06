@@ -54,7 +54,8 @@ COLLECTION_URLS = {
     "Air Force Communications Command": "https://www.sambiddle.com/afcc",
     "Military Airlift Command": "https://www.sambiddle.com/mac",
     "MATHER NAV TRAINING S--1124 Bx 1 of 2": "https://www.sambiddle.com/mather-nav",
-    "Untitled Slide Box 2": "https://www.sambiddle.com/unlabeled-box-2"
+    "Untitled Slide Box 2": "https://www.sambiddle.com/unlabeled-box-2",
+    "SOVIET MILITARY CAPABILITIES S-100-18-85 BOX 2 OF 2": "https://www.sambiddle.com/soviet-military-capabilities-s-100-18-85-box-2-of-2"
 }
 
 

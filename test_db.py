@@ -40,6 +40,7 @@ def main():
   cur = conn.cursor()
   cur.execute(_QUERY)
   i = 0
+  coll_counts = {}
   for collection, filename, jpeg_b64, width, height in cur.fetchall():
     i += 1
     if collection not in post_image.COLLECTION_URLS:
@@ -62,7 +63,11 @@ def main():
       raise ValueError(f"{collection}:{filename} is not wide enough: {width}")
     if height < 100:
       raise ValueError(f"{collection}:{filename} is not tall enough: {height}")
+    coll_counts[collection] = coll_counts.get(collection, 0) + 1
   print(f"Successfully scanned {i} images")
+  for coll, n in sorted(coll_counts.items(), key=lambda t: t[1], reverse=True):
+    print(f"\t{coll}:\t{n}")
+
 
 
 if __name__ == "__main__":
