@@ -80,9 +80,26 @@ def post_image(
     builder.post(login)
 
 
+def abolish_ice(login: bsky_lib.BSkyLogin):
+    builder = bsky_lib.BSkyMessageBuilder()
+    builder.add_segment(
+        bsky_lib.PlainTextSegment("Abolish ICE: ")
+    )
+    builder.add_segment(
+        bsky_lib.HyperlinkSegment(
+            text="https://tiltify.com/womens-foundation-of-minnesota",
+            url="https://tiltify.com/womens-foundation-of-minnesota",
+        )
+    )
+    builder.post(login)
+
+
 def main():
     credfile = pathlib.Path(sys.argv[1])
     login = bsky_lib.BSkyLogin.from_file(credfile)
+
+    abolish_ice(login)
+    return
 
     db_filename = sys.argv[2]
     conn = sqlite3.connect(db_filename)
