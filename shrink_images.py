@@ -1,16 +1,16 @@
 """Translates the original image files into a SQLite table of smaller images.
 
-Presuming `sqlite_output.db` is an empty file, or otherwise uninitialized
-SQLite3 file, use as:
+Usage, where `slides_db.db3` is the SQLite3 DB file being used:
 
-  $ python shrink_images.py sqlite_output.db3
+  $ python shrink_images.py slides_db.db3
 
 This scans for JPEGs in directories under `img/raw/`, as specified by the module
-constant `_RAW_ROOT_DIR`, and shoves 'em in a four-column table named `slides`
-in that destination DB file.  It makes sure no existing image in the table
-already shares the path and filename of the image about to be shoved.
+constant `_RAW_ROOT_DIR`, and shoves 'em in a seven-column table named `slides`
+in that destination DB file.  Before processing and inserting an image, it makes
+sure no existing row in the table matches the candidate image's metadata (its
+collection and file names).
 
-The eight columns of `slides`, in order:
+The seven columns of `slides`, in order:
 
 1.  `collection`, the name of the slide deck this slide is drawn from
 2.  `filename`, the filename of the slide image file
