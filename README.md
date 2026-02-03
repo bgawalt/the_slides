@@ -8,10 +8,9 @@ dedicated to these slides at
 themselves via his account at
 [the Internet Archive](https://archive.org/details/@sambiddle).
 
-This Python suite posts The Slides to Bluesky, four times a day*, at the account
+This Python suite posts The Slides to Bluesky, four times a day, at the account
 [theslides.bsky.social](https://bsky.app/profile/theslides.bsky.social).
 
-(* Or, it will, soon! Before Dec 1, 2023, for sure.)
 
 ## Dependencies
 
@@ -40,6 +39,14 @@ Pillow==10.1.0
 requests==2.31.0
 urllib3==2.1.0
 ```
+
+Additionally, in my Windows-Subsystem-for-Linux, I had to install Tkinter to
+make `add_alt_text.py` work:
+
+```
+$ sudo apt-get install python3-tk
+```
+
 
 ## `shrink_images.py`: Reprocessing originals
 
@@ -79,6 +86,12 @@ You can check this worked OK with `test_db.py`: that the collection names are
 all recognized as linkable back to Biddle's galleries, and that the base-64
 strings really can be parsed into JPEGs again.
 
+
+## `add_alt_text.py`: Add alt text to images one-by-one
+
+Details forthcoming; this is under construction.
+
+
 ## `post_image.py`: Post a processed slide to BlueSky
 
 You supply login credentials with a text file of this wacky custom format, with
@@ -97,8 +110,3 @@ The script then connects to, and extracts an image and its metadata from, the
 SQLite file created by `shrink_images.py`. It reports the name of the collection
 the slide comes from, as well as a "slide X of Y" designation based on the
 sort-order of the filename of the slide within its collection.
-
-## TODO: Alt text
-
-Alt text: I'll have to come up with a tool to let me write descriptive text
-for all ~450 slides.
