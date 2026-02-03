@@ -30,6 +30,9 @@ _SELECT_ALTLESS_IMAGES = """
 """
 
 
+# TODO: make an UPDATE query for updating alt text by rowid
+
+
 @dataclasses.dataclass(frozen=True)
 class Slide:
     rowid: int
@@ -53,14 +56,17 @@ def main():
 
     db_filename = sys.argv[1]
     conn = sqlite3.connect(db_filename)
-    cur = conn.cursor()
-    cur.execute(_SELECT_ALTLESS_IMAGES)
+    read_cur = conn.cursor()
+    read_cur.execute(_SELECT_ALTLESS_IMAGES)
+    # TODO: make a write_cur for performing updates
 
-    row = cur.fetchone()
+    row = read_cur.fetchone()
     if not row:
         print("Nothing to do here.")
     slide = Slide.from_row(row)
     print('Got slide', slide.rowid, slide.width, slide.height)
+    rowid_panel = tkinter.Label(root, text=str(slide.rowid))
+    rowid_panel.pack()
     slide_tk = slide.to_tk()
     slide_panel = tkinter.Label(root, image=slide_tk)
     slide_panel.pack(side='top')
@@ -71,18 +77,21 @@ def main():
     alt_text_panel.pack(side="top")
 
     def submit():
-        print('submitted:')
+        # TODO replace these printlns with using the write_cur to update the
+        # alt text by row id, then commit the change
+        print('submitted:', int(rowid_panel["text"]))
         print(alt_text_panel.get('1.0', 'end'))
         alt_text_panel.delete('1.0', 'end')
-        row = cur.fetchone()
+        row = read_cur.fetchone()
         if not row:
             alt_text_panel.insert('1.0', 'All done!!')
             return
         slide = Slide.from_row(row)
         print('Got slide', slide.rowid, slide.width, slide.height)
         slide_tk = slide.to_tk()
+        rowid_panel.configure(text=str(slide.rowid))
         slide_panel.configure(image=slide_tk)
-        slide_panel.image = slide_tk
+        slide_panel.image = slide_tk  # type: ignore
         alt_text_panel.insert('1.0', 'Enter alt text here.')
 
     submit_button = tkinter.Button(root, text='Submit', command=submit)
