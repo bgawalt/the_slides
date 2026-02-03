@@ -12,6 +12,7 @@ import dataclasses
 import io
 import sqlite3
 import sys
+import tkinter
 
 from PIL import Image
 from PIL import ImageTk
@@ -35,23 +36,29 @@ class Slide:
     width: int
     height: int
 
-    def to_tk(self): # -> ImageTk.PhotoImage:
+    def to_tk(self) -> ImageTk.PhotoImage:
         jpeg_bio = io.BytesIO(base64.b64decode(self.jpeg_base64))
         pil_img = Image.open(jpeg_bio, formats=['jpeg'])
-        print(pil_img.size, self.width, self.height)
+        return ImageTk.PhotoImage(pil_img)
 
 
 def main():
+    root = tkinter.Tk()
+    
     db_filename = sys.argv[1]
     conn = sqlite3.connect(db_filename)
     cur = conn.cursor()
     cur.execute(_SELECT_ALTLESS_IMAGES)
     row = cur.fetchone()
-    while row:
-        rid, jb64, w, h = row
-        s = Slide(rid, jb64, w, h)
-        s.to_tk()
-        row = cur.fetchone()
+    rid, jb64, w, h = row
+    s = Slide(rid, jb64, w, h)
+    stk = s.to_tk()
+
+    panel = tkinter.Label(root, image=stk)
+    panel.pack(side="top")
+    root.mainloop()
+    
+    conn.close()
 
 
 if __name__ == "__main__":
