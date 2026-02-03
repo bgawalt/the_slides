@@ -7,15 +7,20 @@ SQLite3 file, use as:
 
 This scans for JPEGs in directories under `img/raw/`, as specified by the module
 constant `_RAW_ROOT_DIR`, and shoves 'em in a four-column table named `slides`
-in that destination DB file.
+in that destination DB file.  It makes sure no existing image in the table
+already shares the path and filename of the image about to be shoved.
 
-The four columns of `slides`, in order:
+The eight columns of `slides`, in order:
 
 1.  `collection`, the name of the slide deck this slide is drawn from
 2.  `filename`, the filename of the slide image file
 3.  `file_id_num`, the 1-indexed position of this image file in the sort order
       of this collection's file name
 4.  `jpeg_base64`, the Base64 encoding of the image (JPEG format)
+5.  `width`, the width of the image in pixels
+6.  `height`, the height of the image in pixels
+7.  `alt_text`, the alt text entered for this image.  This is initially blank;
+      you need to add alt text with another utility.
 """
 
 
@@ -33,22 +38,31 @@ _RAW_ROOT_DIR = 'img/raw/'
 
 
 _CREATE_TABLE_QUERY = """
-    CREATE TABLE slides(
-        collection text,
-        filename text,
+    CREATE TABLE IF NOT EXISTS slides(
+        collection text NOT NULL,
+        filename text NOT NULL,
         file_id_num integer,
-        jpeg_base64 text,
-        width integer,
-        height integer
+        jpeg_base64 text NOT NULL,
+        width integer NOT NULL CHECK(width > 1),
+        height integer NOT NULL CHECK(width > 1),
+        alt_text text
     );
 """
 
+
+_SELECT_EXISTING_QUERY = "SELECT collection, filename FROM slides;"
+
+
+## Note: no `file_id_num` and no `alt_text`
 _INSERT_IMAGE_QUERY = """
     INSERT INTO slides (
-      collection, filename, file_id_num, jpeg_base64, width, height
+      collection, filename, jpeg_base64, width, height
     )
-    VALUES (?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?)
 """
+
+
+_UPDATE_FILE_ID_NUM_QUERYFILE = "./assign_file_id_num.sql"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -57,6 +71,12 @@ class ShrunkenImage:
     width: int
     height: int
 
+
+def apply_file_id_nums(cur: sqlite3.Cursor):
+    with open(_UPDATE_FILE_ID_NUM_QUERYFILE) as queryfile:
+        query = queryfile.read()
+    cur.execute(query)
+            
 
 def process_image(img_path: pathlib.Path) -> ShrunkenImage:
     """Loads the given big JPEG and returns a shrunken, Base64 version."""
@@ -79,25 +99,27 @@ def process_image(img_path: pathlib.Path) -> ShrunkenImage:
 
 def main():
     raw_root_path = pathlib.Path(_RAW_ROOT_DIR)
-    img_paths = tuple(raw_root_path.glob('*/*.jpeg'))
+    img_paths = tuple(sorted(raw_root_path.glob('*/*.jpeg')))
 
     db_filename = sys.argv[1]
     conn = sqlite3.connect(db_filename)
     cur = conn.cursor()
     cur.execute(_CREATE_TABLE_QUERY)
+    cur.execute(_SELECT_EXISTING_QUERY)
+    existing_slides = set(
+        (collection, filename) for collection, filename in cur.fetchall())
 
     n = len(img_paths)
-    prev_coll = None
-    file_id_num = 1
+    duplicate_count = 0
     for i, p in enumerate(sorted(img_paths), 1):
-        small_jpeg = process_image(p)
         collection = p.parent.name.replace("__", ", ").replace("_", " ")
-        if collection != prev_coll:
-            file_id_num = 1
+        if (collection, p.name) in existing_slides:
+            duplicate_count += 1
+            continue
+        small_jpeg = process_image(p)
         insert_tuple = (
             collection,  # collection
             p.name,  # filename
-            file_id_num,  # file_id_num
             small_jpeg.bytes_b64 , # jpeg_base64
             small_jpeg.width,  # width
             small_jpeg.height  # height
@@ -105,9 +127,8 @@ def main():
         cur.execute(_INSERT_IMAGE_QUERY, insert_tuple)
         conn.commit()
         print(p, f'processed ({i} of {n})')
-        file_id_num += 1
-        prev_coll = collection
-    
+    apply_file_id_nums(cur)
+    print(f'Duplicate count: {duplicate_count} of {n}')
     conn.close()
 
 
