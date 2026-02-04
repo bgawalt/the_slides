@@ -19,7 +19,7 @@ from PIL import Image
 from PIL import ImageTk
 
 
-_SELECT_ALTLESS_IMAGES = """
+_SELECT_ALTLESS_IMAGES_QUERY = """
     SELECT
         rowid,
         jpeg_base64,
@@ -27,10 +27,22 @@ _SELECT_ALTLESS_IMAGES = """
         height
     FROM slides
     WHERE LENGTH(alt_text) IS NULL OR LENGTH(alt_text) = 0
+    ORDER BY RANDOM()
+    LIMIT 3
 """
 
+class AltTextUpdater:
+    """Use this to update the alt text for one row of the slides table."""
+    _QUERY = "UPDATE slides SET alt_text = ? WHERE rowid = ?"
 
-# TODO: make an UPDATE query for updating alt text by rowid
+    def __init__(self, rowid: int, alt_text: str):
+        if rowid < 1:
+            raise ValueError(f"Unexpectedly low rowid: {rowid}")
+        self._rowid = rowid
+        self._alt_text = alt_text
+    
+    def execute(self, cur: sqlite3.Cursor):
+        cur.execute(AltTextUpdater._QUERY, (self._alt_text, self._rowid))
 
 
 @dataclasses.dataclass(frozen=True)
@@ -48,7 +60,12 @@ class Slide:
     def to_tk(self) -> ImageTk.PhotoImage:
         jpeg_bio = io.BytesIO(base64.b64decode(self.jpeg_base64))
         pil_img = Image.open(jpeg_bio, formats=['jpeg'])
-        return ImageTk.PhotoImage(pil_img)
+        curr_width, curr_height = pil_img.size
+        return ImageTk.PhotoImage(
+            pil_img.resize(
+                (curr_width * 2, curr_height * 2),
+                Image.Resampling.LANCZOS)
+        )
 
 
 def main():
@@ -57,14 +74,18 @@ def main():
     db_filename = sys.argv[1]
     conn = sqlite3.connect(db_filename)
     read_cur = conn.cursor()
-    read_cur.execute(_SELECT_ALTLESS_IMAGES)
-    # TODO: make a write_cur for performing updates
+    write_cur = conn.cursor()
 
+    all_done = False
+    def mark_all_done():
+        all_done = True
+
+    read_cur.execute(_SELECT_ALTLESS_IMAGES_QUERY)
     row = read_cur.fetchone()
     if not row:
         print("Nothing to do here.")
     slide = Slide.from_row(row)
-    print('Got slide', slide.rowid, slide.width, slide.height)
+
     rowid_panel = tkinter.Label(root, text=str(slide.rowid))
     rowid_panel.pack()
     slide_tk = slide.to_tk()
@@ -77,14 +98,22 @@ def main():
     alt_text_panel.pack(side="top")
 
     def submit():
-        # TODO replace these printlns with using the write_cur to update the
-        # alt text by row id, then commit the change
-        print('submitted:', int(rowid_panel["text"]))
-        print(alt_text_panel.get('1.0', 'end'))
+        print("Attempting to save alt text...")
+        if all_done:
+            print('i SAID all DONE.')
+            return
+        AltTextUpdater(
+            rowid=int(rowid_panel["text"]),
+            alt_text=alt_text_panel.get('1.0', 'end')
+        ).execute(write_cur)
+        conn.commit()
+        print('... success.')
+
         alt_text_panel.delete('1.0', 'end')
         row = read_cur.fetchone()
         if not row:
             alt_text_panel.insert('1.0', 'All done!!')
+            mark_all_done()
             return
         slide = Slide.from_row(row)
         print('Got slide', slide.rowid, slide.width, slide.height)
