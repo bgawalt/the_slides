@@ -20,7 +20,7 @@ The seven columns of `slides`, in order:
 5.  `width`, the width of the image in pixels
 6.  `height`, the height of the image in pixels
 7.  `alt_text`, the alt text entered for this image.  This is initially blank;
-      you need to add alt text with another utility.
+      you need to add alt text with `add_alt_text.py`.
 """
 
 

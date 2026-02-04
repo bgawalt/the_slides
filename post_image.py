@@ -30,7 +30,8 @@ _SELECT_SLIDE_QUERY = """
         cc.num_img,
         sl.jpeg_base64,
         sl.width,
-        sl.height
+        sl.height,
+        sl.alt_text
     FROM
         slides AS sl
         LEFT JOIN collection_counts AS cc
@@ -61,7 +62,7 @@ COLLECTION_URLS = {
 
 def post_image(
     collection: str, file_rank: int, collection_size: int,
-    jpeg: shrink_images.ShrunkenImage, login: bsky_lib.BSkyLogin
+    jpeg: shrink_images.ShrunkenImage, alt_text: str, login: bsky_lib.BSkyLogin
 ):
     collection_url = COLLECTION_URLS.get(
         collection, "https://www.sambiddle.com/35mm-scans")
@@ -76,7 +77,12 @@ def post_image(
     )
     builder.add_segment(bsky_lib.PlainTextSegment("]"))
     img_bytes = base64.b64decode(jpeg.bytes_b64)
-    builder.add_jpeg(img_bytes, width=jpeg.width, height=jpeg.height)
+    builder.add_jpeg(
+        img_bytes,
+        width=jpeg.width,
+        height=jpeg.height,
+        alt_text=alt_text
+      )
     builder.post(login)
 
 
@@ -88,7 +94,7 @@ def main():
     conn = sqlite3.connect(db_filename)
     cur = conn.cursor()
     cur.execute(_SELECT_SLIDE_QUERY)
-    collection, _, rank, col_size, jpeg_b64, w, h = cur.fetchone()
+    collection, _, rank, col_size, jpeg_b64, w, h, alt_text = cur.fetchone()
     img = shrink_images.ShrunkenImage(jpeg_b64, width=w, height=h)
     print(collection, rank, col_size)
     post_image(
@@ -96,6 +102,7 @@ def main():
         file_rank=rank,
         collection_size=col_size,
         jpeg=img,
+        alt_text=alt_text if alt_text is not None else "",
         login=login
     )
     conn.close()
