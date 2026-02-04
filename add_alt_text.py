@@ -23,8 +23,7 @@ _SELECT_ALTLESS_IMAGES_QUERY = """
     SELECT
         rowid,
         jpeg_base64,
-        width,
-        height
+        collection
     FROM slides
     WHERE LENGTH(alt_text) IS NULL OR LENGTH(alt_text) = 0
     ORDER BY RANDOM()
@@ -49,13 +48,16 @@ class AltTextUpdater:
 class Slide:
     rowid: int
     jpeg_base64: str
-    width: int
-    height: int
+    collection: str
 
     @classmethod
-    def from_row(cls, row: tuple[int, str, int, int]) -> 'Slide':
-        rid, jb64, w, h = row
-        return Slide(rid, jb64, w, h)
+    def from_row(cls, row: tuple[int, str, str]) -> 'Slide':
+        rid, jb64, col = row
+        return Slide(rid, jb64, col)
+
+    @property
+    def slide_id(self) -> str:
+        return f'{self.collection} :: {str(self.rowid)}'
 
     def to_tk(self) -> ImageTk.PhotoImage:
         jpeg_bio = io.BytesIO(base64.b64decode(self.jpeg_base64))
@@ -63,7 +65,7 @@ class Slide:
         curr_width, curr_height = pil_img.size
         return ImageTk.PhotoImage(
             pil_img.resize(
-                (curr_width * 2, curr_height * 2),
+                (round(curr_width * 2.5), round(curr_height * 2.5)),
                 Image.Resampling.LANCZOS)
         )
 
@@ -86,24 +88,25 @@ def main():
         print("Nothing to do here.")
     slide = Slide.from_row(row)
 
-    rowid_panel = tkinter.Label(root, text=str(slide.rowid))
-    rowid_panel.pack()
+    slide_id_panel = tkinter.Label(root, text=slide.slide_id)
+    slide_id_panel.pack()
     slide_tk = slide.to_tk()
     slide_panel = tkinter.Label(root, image=slide_tk)
     slide_panel.pack(side='top')
 
     alt_text_panel = tkinter.Text(
-        root, width=80, height=6, font=("Arial", 15))
-    alt_text_panel.insert(1.0, "Enter alt text here.")
-    alt_text_panel.pack(side="top")
+        root, width=80, height=6, font=('Arial', 15))
+    alt_text_panel.insert(1.0, 'Enter alt text here.')
+    alt_text_panel.pack(side='top')
 
     def submit():
-        print("Attempting to save alt text...")
+        print('Attempting to save alt text...')
         if all_done:
             print('i SAID all DONE.')
+            root.destroy()
             return
         AltTextUpdater(
-            rowid=int(rowid_panel["text"]),
+            rowid=int(slide_id_panel['text'].split(" :: ")[-1]),
             alt_text=alt_text_panel.get('1.0', 'end')
         ).execute(write_cur)
         conn.commit()
@@ -112,13 +115,12 @@ def main():
         alt_text_panel.delete('1.0', 'end')
         row = read_cur.fetchone()
         if not row:
-            alt_text_panel.insert('1.0', 'All done!!')
-            mark_all_done()
+            root.quit()
             return
         slide = Slide.from_row(row)
-        print('Got slide', slide.rowid, slide.width, slide.height)
+        print('Got slide', slide.slide_id)
         slide_tk = slide.to_tk()
-        rowid_panel.configure(text=str(slide.rowid))
+        slide_id_panel.configure(text=slide.slide_id)
         slide_panel.configure(image=slide_tk)
         slide_panel.image = slide_tk  # type: ignore
         alt_text_panel.insert('1.0', 'Enter alt text here.')
