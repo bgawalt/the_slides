@@ -70,10 +70,9 @@ class Slide:
         )
 
 
-def main():
+def label_random(db_filename: str):
     root = tkinter.Tk()
 
-    db_filename = sys.argv[1]
     conn = sqlite3.connect(db_filename)
     read_cur = conn.cursor()
     write_cur = conn.cursor()
@@ -122,6 +121,12 @@ def main():
 
     root.mainloop()    
     conn.close()
+
+
+def main():
+    if len(sys.argv) == 2:
+        label_random(sys.argv[1])
+    raise ValueError('Incorrect number of arguments.')
 
 
 if __name__ == "__main__":
