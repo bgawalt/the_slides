@@ -10,6 +10,7 @@ in the SQLite file.
 
 import base64
 import dataclasses
+import hashlib
 import pathlib
 import sys
 import sqlite3
@@ -114,7 +115,7 @@ class Slide:
         )
 
 
-def post_image(slide: Slide, login: bsky_lib.BSkyLogin):
+def post_image(slide: Slide, db_hash: str, login: bsky_lib.BSkyLogin):
     collection_url = COLLECTION_URLS.get(
         slide.collection, "https://www.sambiddle.com/35mm-scans")
     builder = bsky_lib.BSkyMessageBuilder()
@@ -132,9 +133,17 @@ def post_image(slide: Slide, login: bsky_lib.BSkyLogin):
         slide.jpeg,
         width=slide.width,
         height=slide.height,
-        alt_text=slide.alt_text
+        alt_text=(slide.alt_text + f" db:{db_hash}")
       )
     builder.post(login)
+
+
+def db_hashcode(db_filename: str) -> str:
+    with open(db_filename, 'rb') as infile:
+      contents = infile.read()
+    h = hashlib.sha256()
+    h.update(contents)
+    return h.hexdigest()[:5]
 
 
 def main():
@@ -142,12 +151,15 @@ def main():
     login = bsky_lib.BSkyLogin.from_file(credfile)
 
     db_filename = sys.argv[2]
+    db_hash = db_hashcode(db_filename)
+    print("Database version:", db_hash)
+
     conn = sqlite3.connect(db_filename)
     cur = conn.cursor()
     cur.execute(_SELECT_SLIDE_QUERY)
     slide = Slide.from_cursor(cur)
     print(slide)
-    post_image(slide, login)
+    post_image(slide, db_hash, login)
     conn.close()
 
 
