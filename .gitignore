@@ -4,3 +4,4 @@ img/raw/*
 *.secret
 __pycache__
 .vscode
+*_test.db3
