@@ -2,7 +2,7 @@
 
 Usage, where `slides_db.db3` is the SQLite3 DB file being used:
 
-  $ python slide_viewer.py slides_db.db3  id:1234
+  $ python slide_viewer.py slides_db.db3 id:1234
 """
 
 import base64

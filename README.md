@@ -87,9 +87,41 @@ all recognized as linkable back to Biddle's galleries, and that the base-64
 strings really can be parsed into JPEGs again.
 
 
-## `add_alt_text.py`: Add alt text to images one-by-one
+## `slide_viewer.py` and `add_alt_text.py`: Add alt text to images one-by-one
 
-Details forthcoming; this is under construction.
+A workflow for adding alt text is:
+
+### (1) View the slide you want to annotate with `slide_viewer`
+
+Identify your slide by its row ID in the table `slides` in the above sqlite3
+file.  View it -- as in, the actual jpeg stored in that row -- with this
+command:
+
+```shell
+$ python3 slide_viewer.py slides_db.db3 id:1234
+```
+
+That `id:` prefix is load-bearing and if you don't include it, the job fails.
+You have now confirmed that you're about the annotate the 
+
+### (2) Write the alt text to a local text file
+
+Save the desired alt text, line breaks and all, into any local text file.
+I'd use `/tmp/alt_1234.txt` for this example.
+
+### (3) Update the database with `add_alt_text`
+
+Move the alt text from the text file of step 2 into the row you viewed in step 1
+with the command:
+
+```shell
+$ python3 add_alt_text.py slides_db.db3 id:1234 /tmp/alt_1234.txt
+```
+
+Note that the alt text filename is not parsed for the sake of any business
+logic beyond "open this file and slurp up the contents."  The fact that it has
+the rowid in it, in this example, is just about human bookkeeping.  Only the
+`id:1234` argument is used to identify the right image row to update.
 
 
 ## `post_image.py`: Post a processed slide to BlueSky

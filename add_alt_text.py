@@ -12,9 +12,6 @@ Those arguments are:
 3)  `/tmp/alt.txt` is a text file containing the new alt text.
 """
 
-import base64
-import dataclasses
-import io
 import sqlite3
 import sys
 
@@ -47,7 +44,6 @@ def main():
         alt_text = alt_text_file.read().strip()
     if not alt_text:
         raise ValueError(f'Empty alt text after reading {alt_text_filename}')
-
     
     print(f'Attempting to update rowid {rowid_num} with alt text:\n{alt_text}')
     proceed = input('Proceed [y/n]? ')
