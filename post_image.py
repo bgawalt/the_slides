@@ -9,12 +9,12 @@ in the SQLite file.
 """
 
 import base64
+import dataclasses
 import pathlib
 import sys
 import sqlite3
 
 import bsky_lib
-import shrink_images
 
 
 _SELECT_SLIDE_QUERY = """
@@ -24,8 +24,8 @@ _SELECT_SLIDE_QUERY = """
         GROUP BY collection
     )
     SELECT
+        sl.rowid,
         sl.collection,
-        sl.filename,
         sl.file_id_num,
         cc.num_img,
         sl.jpeg_base64,
@@ -39,6 +39,59 @@ _SELECT_SLIDE_QUERY = """
     ORDER BY RANDOM()
     LIMIT 1
 """
+
+@dataclasses.dataclass(frozen=True)
+class Slide:
+    """A slide, as fetched from the SQLite database."""
+    collection: str
+    rank: int
+    collection_size: int
+    jpeg: bytes
+    width: int
+    height: int
+    alt_text: str
+
+    def __post_init__(self):
+        if self.collection not in COLLECTION_URLS:
+            raise ValueError(f'Unrecognized collection {self.collection}')            
+        if self.rank < 1:
+            raise ValueError(f'rank too small: {self.rank}')
+        if self.collection_size < 5:
+            raise ValueError(
+                f'collection size too small: {self.collection_size}')
+        if self.rank > self.collection_size:
+            raise ValueError(
+                f'rank ({self.rank}) is too large relative to collection size '
+                f'({self.collection_size})'
+            )
+        if self.width <= 10:
+            raise ValueError(f'Image width too small: {self.width}')
+        if self.height <= 10:
+            raise ValueError(f'Image width too small: {self.height}')
+        if len(self.jpeg) < 10:
+            raise ValueError(f'Image bytes too short: {len(self.jpeg)}')
+        if not self.alt_text:
+            raise ValueError('Must supply alt text, even if just row id')
+
+    def __str__(self) -> str:
+        return f'{self.collection} {self.rank} {self.collection_size}'
+
+    @classmethod
+    def from_cursor(cls, cur: sqlite3.Cursor) -> 'Slide':
+        rowid, collection, rank, col_size, jpeg_b64, w, h, alt = cur.fetchone()
+        if alt is None:
+            alt = '[no alt text added yet! reply with yours!] '
+        alt += f'id:{rowid}'
+        img_bytes = base64.b64decode(jpeg_b64)
+        return Slide(
+            collection=collection,
+            rank=rank,
+            collection_size=col_size,
+            jpeg=img_bytes,
+            width=w,
+            height=h,
+            alt_text=alt
+        )
 
 
 COLLECTION_URLS = {
@@ -60,28 +113,25 @@ COLLECTION_URLS = {
 }
 
 
-def post_image(
-    collection: str, file_rank: int, collection_size: int,
-    jpeg: shrink_images.ShrunkenImage, alt_text: str, login: bsky_lib.BSkyLogin
-):
+def post_image(slide: Slide, login: bsky_lib.BSkyLogin):
     collection_url = COLLECTION_URLS.get(
-        collection, "https://www.sambiddle.com/35mm-scans")
+        slide.collection, "https://www.sambiddle.com/35mm-scans")
     builder = bsky_lib.BSkyMessageBuilder()
     builder.add_segment(
         bsky_lib.PlainTextSegment(
-            f'"{collection}," slide {file_rank} of {collection_size} ['
+            f'"{slide.collection}," slide {slide.rank} of '
+            + f'{slide.collection_size} ['
         )
     )
     builder.add_segment(
         bsky_lib.HyperlinkSegment(text="gallery", url=collection_url)
     )
     builder.add_segment(bsky_lib.PlainTextSegment("]"))
-    img_bytes = base64.b64decode(jpeg.bytes_b64)
     builder.add_jpeg(
-        img_bytes,
-        width=jpeg.width,
-        height=jpeg.height,
-        alt_text=alt_text
+        slide.jpeg,
+        width=slide.width,
+        height=slide.height,
+        alt_text=slide.alt_text
       )
     builder.post(login)
 
@@ -94,17 +144,9 @@ def main():
     conn = sqlite3.connect(db_filename)
     cur = conn.cursor()
     cur.execute(_SELECT_SLIDE_QUERY)
-    collection, _, rank, col_size, jpeg_b64, w, h, alt_text = cur.fetchone()
-    img = shrink_images.ShrunkenImage(jpeg_b64, width=w, height=h)
-    print(collection, rank, col_size)
-    post_image(
-        collection=collection,
-        file_rank=rank,
-        collection_size=col_size,
-        jpeg=img,
-        alt_text=alt_text if alt_text is not None else "",
-        login=login
-    )
+    slide = Slide.from_cursor(cur)
+    print(slide)
+    post_image(slide, login)
     conn.close()
 
 
