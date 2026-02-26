@@ -1,11 +1,15 @@
-"""Pulls up images that need alt text and lets you type it in.
+"""Update a slide's alt text in the slides database.
 
-Usage, where `slides_db.db3` is the SQLite3 DB file being used:
+Usage:
 
-  $ python add_alt_text.py slides_db.db3
+  $ python add_alt_text.py slides_db.db3 id:1234 /tmp/alt.txt
 
-This is a janky Tkinter app that does not look or feel good, but it is getting
-the job done.
+Those arguments are:
+
+1)  `slides_db.db3` is the sqlite3 db file used for the slides posts.
+2)  `id:1234` is the rowid from the table `slides` of the slide you whose alt
+      text you want to update/replace.
+3)  `/tmp/alt.txt` is a text file containing the new alt text.
 """
 
 import base64
@@ -13,22 +17,7 @@ import dataclasses
 import io
 import sqlite3
 import sys
-import tkinter
 
-from PIL import Image
-from PIL import ImageTk
-
-
-_SELECT_ALTLESS_IMAGES_QUERY = """
-    SELECT
-        rowid,
-        jpeg_base64,
-        collection
-    FROM slides
-    WHERE LENGTH(alt_text) IS NULL OR LENGTH(alt_text) = 0
-    ORDER BY RANDOM()
-    LIMIT 3
-"""
 
 class AltTextUpdater:
     """Use this to update the alt text for one row of the slides table."""
@@ -44,89 +33,33 @@ class AltTextUpdater:
         cur.execute(AltTextUpdater._QUERY, (self._alt_text, self._rowid))
 
 
-@dataclasses.dataclass(frozen=True)
-class Slide:
-    rowid: int
-    jpeg_base64: str
-    collection: str
+def main():
+    db_filename = sys.argv[1]
+    rowid_str = sys.argv[2]
+    alt_text_filename = sys.argv[3]
 
-    @classmethod
-    def from_row(cls, row: tuple[int, str, str]) -> 'Slide':
-        rid, jb64, col = row
-        return Slide(rid, jb64, col)
+    if not rowid_str.startswith('id:'):
+        raise ValueError(f'rowid arg must start with "id:", got {rowid_str}')
+    rowid_num = int(rowid_str[3:])
 
-    @property
-    def slide_id(self) -> str:
-        return f'{self.collection} :: {str(self.rowid)}'
+    alt_text = None
+    with open(alt_text_filename, 'rt') as alt_text_file:
+        alt_text = alt_text_file.read().strip()
+    if not alt_text:
+        raise ValueError(f'Empty alt text after reading {alt_text_filename}')
 
-    def to_tk(self) -> ImageTk.PhotoImage:
-        jpeg_bio = io.BytesIO(base64.b64decode(self.jpeg_base64))
-        pil_img = Image.open(jpeg_bio, formats=['jpeg'])
-        curr_width, curr_height = pil_img.size
-        return ImageTk.PhotoImage(
-            pil_img.resize(
-                (round(curr_width * 2.5), round(curr_height * 2.5)),
-                Image.Resampling.LANCZOS)
-        )
-
-
-def label_random(db_filename: str):
-    root = tkinter.Tk()
-
+    
+    print(f'Attempting to update rowid {rowid_num} with alt text:\n{alt_text}')
+    proceed = input('Proceed [y/n]? ')
+    if proceed.strip() != 'y':
+        print(f'Exiting (got non-"y" response: {proceed.strip()})')
+    
     conn = sqlite3.connect(db_filename)
-    read_cur = conn.cursor()
-    write_cur = conn.cursor()
-
-    read_cur.execute(_SELECT_ALTLESS_IMAGES_QUERY)
-    row = read_cur.fetchone()
-    if not row:
-        print("Nothing to do here.")
-    slide = Slide.from_row(row)
-
-    slide_id_panel = tkinter.Label(root, text=slide.slide_id)
-    slide_id_panel.pack()
-    slide_tk = slide.to_tk()
-    slide_panel = tkinter.Label(root, image=slide_tk)
-    slide_panel.pack(side='top')
-
-    alt_text_panel = tkinter.Text(
-        root, width=80, height=6, font=('Arial', 15))
-    alt_text_panel.insert(1.0, 'Enter alt text here.')
-    alt_text_panel.pack(side='top')
-
-    def submit():
-        print('Attempting to save alt text...')
-        AltTextUpdater(
-            rowid=int(slide_id_panel['text'].split(" :: ")[-1]),
-            alt_text=alt_text_panel.get('1.0', 'end')
-        ).execute(write_cur)
-        conn.commit()
-        print('... success.')
-
-        alt_text_panel.delete('1.0', 'end')
-        row = read_cur.fetchone()
-        if not row:
-            root.quit()
-            return
-        slide = Slide.from_row(row)
-        print('Got slide', slide.slide_id)
-        slide_tk = slide.to_tk()
-        slide_id_panel.configure(text=slide.slide_id)
-        slide_panel.configure(image=slide_tk)
-        slide_panel.image = slide_tk  # type: ignore
-        alt_text_panel.insert('1.0', 'Enter alt text here.')
-
-    submit_button = tkinter.Button(root, text='Submit', command=submit)
-    submit_button.pack(side='top')
-
-    root.mainloop()    
+    cur = conn.cursor()
+    AltTextUpdater(rowid=rowid_num, alt_text=alt_text).execute(cur)
+    conn.commit()  
     conn.close()
 
-
-def main():
-    if len(sys.argv) == 2:
-        label_random(sys.argv[1])
-    raise ValueError('Incorrect number of arguments.')
 
 
 if __name__ == "__main__":
