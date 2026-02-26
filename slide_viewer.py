@@ -3,6 +3,11 @@
 Usage, where `slides_db.db3` is the SQLite3 DB file being used:
 
   $ python slide_viewer.py slides_db.db3 id:1234
+
+That pulls up a specific image.  The `id:` prefix is required.
+
+If you want to pull up a random image, one which has no alt text, simply omit
+that last argument.
 """
 
 import base64
@@ -16,7 +21,7 @@ from PIL import Image
 from PIL import ImageTk
 
 
-_SELECT_IMAGE_QUERY = """
+_TARGET_IMAGE_QUERY = """
     SELECT
         rowid,
         jpeg_base64,
@@ -24,6 +29,15 @@ _SELECT_IMAGE_QUERY = """
         alt_text
     FROM slides
     WHERE rowid = ?
+"""
+
+
+_RANDOM_IMAGE_QUERY = """
+    SELECT  rowid
+    FROM slides
+    WHERE LENGTH(alt_text) IS NULL OR LENGTH(alt_text) = 0
+    ORDER BY RANDOM()
+    LIMIT 1
 """
 
 
@@ -56,25 +70,41 @@ class Slide:
         )
 
 
+def get_rowid() -> int | None:
+    if len(sys.argv) == 3:
+        rowid_str = sys.argv[2]
+        if not rowid_str.startswith('id:'):
+            raise ValueError(
+                f'rowid arg must start with "id:", got {rowid_str}')
+        return int(rowid_str[3:])
+    conn = sqlite3.connect(sys.argv[1])
+    cur = conn.cursor()
+    cur.execute(_RANDOM_IMAGE_QUERY)
+    rows = cur.fetchall()
+    if len(rows) == 0:
+        print('No alt-text-less images found.  Congrats!')
+        return None
+    assert(len(rows) == 1), (
+        f'Got too many rows back from random image query ({len(rows)})')
+    return rows[0][0]
+
 
 def main():
     root = tkinter.Tk()
 
-    if len(sys.argv) != 3:
-        raise ValueError('Must supply two arguments.')
+    if len(sys.argv) == 1:
+        raise ValueError('Must supply db filename.')
     db_filename = sys.argv[1]
-    rowid_str = sys.argv[2]
-    if not rowid_str.startswith('id:'):
-        raise ValueError(f'rowid arg must start with "id:", got {rowid_str}')
-    rowid_num = int(rowid_str[3:])
-
+    rowid = get_rowid()
+    if rowid is None:
+        return
+    
     conn = sqlite3.connect(db_filename)
     cur = conn.cursor()
-
-    cur.execute(_SELECT_IMAGE_QUERY, (rowid_num,))
+    cur.execute(_TARGET_IMAGE_QUERY, (rowid,))
     rows = cur.fetchall()
     if len(rows) != 1:
-        raise ValueError(f'Multiple rows found for rowid {rowid_num}')
+        raise ValueError(f'Multiple rows found for rowid {rowid}')
     slide = Slide.from_row(rows[0])
 
     slide_id_panel = tkinter.Label(root, text=slide.slide_id)

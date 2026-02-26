@@ -102,7 +102,11 @@ $ python3 slide_viewer.py slides_db.db3 id:1234
 ```
 
 That `id:` prefix is load-bearing and if you don't include it, the job fails.
-You have now confirmed that you're about the annotate the 
+You have now confirmed that you're about the annotate the right slide.
+
+If you don't have a particular slide in mind, you can omit the row ID argument,
+and the script will (try to) pull up an image that lacks alt text.  Like if you
+want to increase alt text coverage and you don't care which image gets it first.
 
 ### (2) Write the alt text to a local text file
 
