@@ -78,10 +78,6 @@ def main():
     read_cur = conn.cursor()
     write_cur = conn.cursor()
 
-    all_done = False
-    def mark_all_done():
-        all_done = True
-
     read_cur.execute(_SELECT_ALTLESS_IMAGES_QUERY)
     row = read_cur.fetchone()
     if not row:
@@ -101,10 +97,6 @@ def main():
 
     def submit():
         print('Attempting to save alt text...')
-        if all_done:
-            print('i SAID all DONE.')
-            root.destroy()
-            return
         AltTextUpdater(
             rowid=int(slide_id_panel['text'].split(" :: ")[-1]),
             alt_text=alt_text_panel.get('1.0', 'end')
