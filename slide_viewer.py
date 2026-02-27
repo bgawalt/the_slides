@@ -103,6 +103,9 @@ def main():
     cur = conn.cursor()
     cur.execute(_TARGET_IMAGE_QUERY, (rowid,))
     rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
     if len(rows) != 1:
         raise ValueError(f'Multiple rows found for rowid {rowid}')
     slide = Slide.from_row(rows[0])
@@ -120,7 +123,6 @@ def main():
     
     root.geometry('%dx%d+%d+%d' % (1600, 1600, 800, 800))
     root.mainloop()
-    conn.close()
 
 
 if __name__ == "__main__":
